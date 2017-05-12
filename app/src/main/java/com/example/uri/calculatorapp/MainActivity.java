@@ -13,10 +13,12 @@ public class MainActivity extends AppCompatActivity {
     private EditText newNumber;
     private TextView displayOperation;
 
+
     // Variables to hold operands and type of calculations
     private Double operand1 = null;
-    private Double operand2 = null;
     private String pendingOperation = "=";
+    private final String STATE_PENDING_OPERATION = "pendingOperation";
+    private final String STATE_OPERAND1 = "operand1";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,6 +46,19 @@ public class MainActivity extends AppCompatActivity {
         Button buttonMultiply = (Button) findViewById(R.id.buttonMultiply);
         Button buttonMinus = (Button) findViewById(R.id.buttonMinus);
         Button buttonPlus = (Button) findViewById(R.id.buttonPlus);
+        Button buttonNegative = (Button) findViewById(R.id.buttonNegative);
+        Button buttonClear = (Button) findViewById(R.id.buttonClear);
+
+
+        buttonClear.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                result.setText("0.0");
+                newNumber.setText("");
+
+            }
+        });
+
 
         View.OnClickListener listener = new View.OnClickListener() {
             @Override
@@ -52,6 +67,28 @@ public class MainActivity extends AppCompatActivity {
                 newNumber.append(b.getText().toString());
             }
         };
+
+        View.OnClickListener negativeListener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String value = newNumber.getText().toString();
+                if (value.length() == 0) {
+                    newNumber.setText("-");
+                }
+                else {
+                    try {
+                        Double doubleValue = Double.valueOf(value);
+                        doubleValue *= -1;
+                        newNumber.setText(doubleValue.toString());
+                    } catch (NumberFormatException e) {
+                        newNumber.setText("");
+                    }
+                }
+            }
+        };
+
+        buttonNegative.setOnClickListener(negativeListener);
+
         button0.setOnClickListener(listener);
         button1.setOnClickListener(listener);
         button2.setOnClickListener(listener);
@@ -70,8 +107,11 @@ public class MainActivity extends AppCompatActivity {
                 Button b = (Button) v;
                 String op = b.getText().toString();
                 String value = newNumber.getText().toString();
-                if (value.length() != 0) {
-                    performOperation(value, op);
+                try {
+                    Double doubleValue = Double.valueOf(value);
+                    performOperation(doubleValue, op);
+                } catch (NumberFormatException e) {
+                    newNumber.setText("");
                 }
                 pendingOperation = op;
                 displayOperation.setText(pendingOperation);
@@ -85,40 +125,58 @@ public class MainActivity extends AppCompatActivity {
         buttonPlus.setOnClickListener(opListener);
     }
 
-    private void performOperation(String value, String operation) {
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        outState.putString(STATE_PENDING_OPERATION, pendingOperation);
+        if (operand1 != null) {
+            outState.putDouble(STATE_OPERAND1, operand1);
+        }
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        pendingOperation = savedInstanceState.getString(STATE_PENDING_OPERATION);
+        operand1 = savedInstanceState.getDouble(STATE_OPERAND1);
+        displayOperation.setText(pendingOperation);
+    }
+
+    private void performOperation(Double value, String operation) {
         if (null == operand1) {
-            operand1 = Double.valueOf(value);
+            operand1 = value;
         }
         else {
-            operand2 = Double.valueOf(value);
-
             if (pendingOperation.equals("=")) {
                 pendingOperation = operation;
             }
             switch (pendingOperation) {
                 case "=":
-                    operand1 = operand2;
+                    operand1 = value;
                     break;
                 case "/":
-                    if (operand2 == 0) {
+                    if (value == 0) {
                         operand1 = 0.0;
                     }
                     else {
-                        operand1 /= operand2;
+                        operand1 /= value;
                     }
                     break;
                 case "*":
-                    operand1 *= operand2;
+                    operand1 *= value;
                     break;
                 case "-":
-                    operand1 -= operand2;
+                    operand1 -= value;
                     break;
                 case "+":
-                    operand1 += operand2;
+                    operand1 += value;
                     break;
             }
         }
         result.setText(operand1.toString());
         newNumber.setText("");
     }
+
+
 }
